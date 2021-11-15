@@ -29,8 +29,8 @@ app = Flask(__name__, template_folder=tmpl_dir)
 #
 #     DATABASEURI = "postgresql://gravano:foobar@34.74.246.148/proj1part2"
 #
-DATABASEURI = "postgresql://user:password@34.74.246.148/proj1part2"
-
+DATABASEURI = "postgresql://vl2420:6609@34.74.246.148/proj1part2"
+#DATABASEURI = "postgresql://vl2420:6609@34.73.37.51/proj1part2"
 
 #
 # This line creates a database engine that knows how to connect to the URI above.
@@ -45,7 +45,7 @@ engine.execute("""CREATE TABLE IF NOT EXISTS test (
   id serial,
   name text
 );""")
-engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
+#engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
 
 
 @app.before_request
@@ -114,6 +114,26 @@ def index():
   for result in cursor:
     names.append(result['name'])  # can also be accessed using result[0]
   cursor.close()
+  
+  
+  
+  #My Test
+  cursor = g.conn.execute("SELECT ssn FROM users")
+  for result in cursor:
+    names.append(result['ssn'])  # can also be accessed using result[0]
+  cursor.close()
+
+  cursor = g.conn.execute("SELECT M.name FROM users M WHERE M.walletbal=30000")
+  for result in cursor:
+    names.append(result['name'])  # can also be accessed using result[0]
+  cursor.close()
+
+  cursor = g.conn.execute("SELECT AVG(walletbal) FROM users")
+  for result in cursor:
+    names.append(result[0])  # can also be accessed using result[0]
+  cursor.close()
+  
+  
 
   #
   # Flask uses Jinja templates, which is an extension to HTML where you can
@@ -169,6 +189,21 @@ def add():
   name = request.form['name']
   g.conn.execute('INSERT INTO test(name) VALUES (%s)', name)
   return redirect('/')
+
+@app.route('/depositUser', methods=['POST'])
+def depositUser():
+  depositAmt = request.form['name']
+  g.conn.execute('INSERT INTO test(name) VALUES (%s)', depositAmt)
+  g.conn.execute("DELETE FROM deposits_user where bid=1")
+  g.conn.execute("INSERT INTO deposits_user VALUES (948232260, 1, %s)", depositAmt)
+  g.conn.execute("UPDATE users M set walletbal=M.walletbal-%s WHERE M.name='Lincoln'", depositAmt)
+  g.conn.execute("UPDATE bank M set balance=M.balance+%s WHERE M.name='Lincoln'", depositAmt)
+  return redirect('/')
+
+
+@app.route('/testing')
+def testing():
+  return render_template("testing.html")
 
 
 @app.route('/login')
