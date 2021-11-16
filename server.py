@@ -12,7 +12,7 @@ import os
   # accessible as a variable in index.html:
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
-from flask import Flask, request, render_template, g, redirect, Response
+from flask import Flask, request, render_template, g, redirect, Response, url_for
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
@@ -133,6 +133,13 @@ def index():
     names.append(result[0])  # can also be accessed using result[0]
   cursor.close()
   
+  cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE bid=1")
+  for result in cursor:
+    names.append(result['balance'])  # can also be accessed using result[0]
+  cursor.close()
+  
+
+  
   
 
   #
@@ -199,6 +206,37 @@ def depositUser():
   g.conn.execute("UPDATE users M set walletbal=M.walletbal-%s WHERE M.name='Lincoln'", depositAmt)
   g.conn.execute("UPDATE bank M set balance=M.balance+%s WHERE M.name='Lincoln'", depositAmt)
   return redirect('/')
+
+
+@app.route('/book', methods=['POST'])
+def book():
+    
+    outputs=[]
+    userInput = request.form['name']
+    #outputs.append(g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name=%s", userInput))
+    #outputs.append(g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=%s", userInput))
+    #cursor = g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name='{}'".format(userInput))
+    cursor = g.conn.execute("SELECT walletbal FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
+    for result in cursor:
+        outputs.append(result['walletbal'])  # can also be accessed using result[0]
+    cursor.close()
+
+    #cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name='{}'".format(userInput))
+    cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
+    for result in cursor:
+        outputs.append(result['balance'])  # can also be accessed using result[0]
+    cursor.close()
+
+    outputdict = dict(userName=userInput,walletBalance=outputs[0], bankBalance=outputs[1])
+    print(outputdict)
+    return render_template("book.html", **outputdict)
+
+
+@app.route('/bookInput', methods=['POST'])
+def bookInput():
+    #if request.method=='POST':
+        #return redirect(url_for('book'))
+    return book()
 
 
 @app.route('/testing')
