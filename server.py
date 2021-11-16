@@ -199,13 +199,37 @@ def add():
 
 @app.route('/depositUser', methods=['POST'])
 def depositUser():
-  depositAmt = request.form['name']
-  g.conn.execute('INSERT INTO test(name) VALUES (%s)', depositAmt)
-  g.conn.execute("DELETE FROM deposits_user where bid=1")
-  g.conn.execute("INSERT INTO deposits_user VALUES (948232260, 1, %s)", depositAmt)
-  g.conn.execute("UPDATE users M set walletbal=M.walletbal-%s WHERE M.name='Lincoln'", depositAmt)
-  g.conn.execute("UPDATE bank M set balance=M.balance+%s WHERE M.name='Lincoln'", depositAmt)
-  return redirect('/')
+    depositAmt = request.form['amount']
+    print(request.form['name'])
+    print(depositAmt)
+    
+    
+    print("This is name")
+    print(request.form['name'])
+    g.conn.execute("DELETE FROM deposits_user where bid=1")
+    g.conn.execute("INSERT INTO deposits_user VALUES (948232260, 1, %s)", depositAmt)
+    g.conn.execute("UPDATE users M set walletbal=M.walletbal-%s WHERE M.name='Lincoln'", depositAmt)
+    g.conn.execute("UPDATE bank M set balance=M.balance+%s WHERE M.name='Lincoln'", depositAmt)
+    outputs=[]
+    userInput = request.form['name']
+    #outputs.append(g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name=%s", userInput))
+    #outputs.append(g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=%s", userInput))
+    #cursor = g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name='{}'".format(userInput))
+    cursor = g.conn.execute("SELECT walletbal FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
+    for result in cursor:
+        outputs.append(result['walletbal'])  # can also be accessed using result[0]
+    cursor.close()
+
+    #cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name='{}'".format(userInput))
+    cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
+    for result in cursor:
+        outputs.append(result['balance'])  # can also be accessed using result[0]
+    cursor.close()
+
+    outputdict = dict(userName=userInput,walletBalance=outputs[0], bankBalance=outputs[1])
+    print(outputdict)
+    return redirect("0.0.0.0:8111/book", **outputdict)
+    #return render_template("book.html",**dict(userName="0",walletBalance=0, bankBalance=1))
 
 
 @app.route('/book', methods=['POST'])
