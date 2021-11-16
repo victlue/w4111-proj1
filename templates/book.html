@@ -9,7 +9,7 @@
 
 <body>
 
-<p><a href="/">Go back to home page</a></p>
+<p><a href="/">Go back to login page</a></p>
   <h1>Welcome, {{userName}}.</h1>
   <span><br /></span>
   <!-- <p>NAME: <input type="text" name="name" placeholder="Enter name..." /> </p>
@@ -20,56 +20,77 @@
   </form> -->
 
   <h2><u>Personal Wallet:</u></h2>
-    <div> &emsp; Balance: ${{walletBalance}}</div>
+    <div> Balance: ${{walletBalance}}</div>
     <div><form method="POST" action="/depositUser">
 Deposit to Bank: <input type="number" step=".01" name="amount"> <input type="submit" value="Deposit"></form></div>
-    <div> &emsp; Deposit to Bank: </div>
-    <div> &emsp; Withdraw from Bank: </div>
+    <div><form method="POST" action="/withdrawUser">
+Withdraw from Bank: <input type="number" step=".01" name="amount"> <input type="submit" value="Withdraw"></form></div>
     <span><br /><br /></span>
 
   <h2><u>Bank:</u></h2>
-    <div> &emsp; Balance: ${{bankBalance}}</div>
-    <div> &emsp; Deposit to Cryptoexchange:</div>
-    <div> &emsp; Withdraw from Cryptoexchange:</div>
+    <div>Balance: ${{bankBalance}}</div>
+    <div><form method="POST" action="/depositcExchange">
+Deposit to Cryptoexchange: <input type="number" step=".01" name="amount"> <input type="submit" value="Deposit"></form></div>
+    <div><form method="POST" action="/withdrawcExchange">
+Withdraw from Cryptoexchange: <input type="number" step=".01" name="amount"> <input type="submit" value="Withdraw"></form></div>
 
   <h2><br /><u>Cryptocurrency Exchange:</u></h2>
-    <div>&emsp; USD Balance: &emsp; &emsp; &emsp; &emsp; &emsp;
-          ETH Balance: &emsp; &emsp; &emsp; &emsp; &emsp;
-          BTC Balance:</div>
+    <div>&emsp; USD Balance: {{cExchangeUSD}} &emsp; &emsp; &emsp; &emsp; &emsp;
+          ETH Balance: {{cExchangeETH}} &emsp; &emsp; &emsp; &emsp; &emsp;
+          BTC Balance: {{cExchangeBTC}}</div>
     <span><br /></span>
 
-    <div> &emsp; Deposit to Cryptocurrency Wallet: </div>
-    <div> &emsp; Withdraw from Cryptocurrency Wallet: </div>
+    <div><form method="POST" action="/depositETHWallet">
+Deposit Etherium to Cryptocurrency Wallet: <input type="number" step=".01" name="amount"> <input type="submit" value="Deposit"></form></div>
+	<div><form method="POST" action="/depositBTCWallet">
+Deposit bitcoin to Cryptocurrency Wallet: <input type="number" step=".01" name="amount"> <input type="submit" value="Deposit"></form></div>
+	<div><form method="POST" action="/withdrawETHWallet">
+Withdraw Etherium from Cryptocurrency Wallet: <input type="number" step=".01" name="amount"> <input type="submit" value="Withdraw"></form></div>
+	<div><form method="POST" action="/withdrawBTCWallet">
+Withdraw bitcoin from Cryptocurrency Wallet: <input type="number" step=".01" name="amount"> <input type="submit" value="Withdraw"></form></div>
     <span><br /></span>
 
     <span> &emsp; <b>Exchange:</b> <br /> </span>
-    <div> &emsp; &emsp; Ethereum Price: &emsp; <br />
-          &emsp; &emsp; Bitcoin Price:  &emsp; <br />
+    <div> &emsp; &emsp; Ethereum Price: ${{ETHPrice}} &emsp; <br />
+          &emsp; &emsp; Bitcoin Price: ${{BTCPrice}}  &emsp; <br />
     </div>
     <span><br /></span>
-    <div> &emsp; &emsp; USD to BTC:</div>
-    <div> &emsp; &emsp; USD to ETH:</div>
-    <div> &emsp; &emsp; ETH to USD:</div>
-    <div> &emsp; &emsp; ETH to BTC:</div>
-    <div> &emsp; &emsp; BTC to USD:</div>
-    <div> &emsp; &emsp; BTC to ETH:</div>
+    <div><form method="POST" action="/convertUSDtoBTC">
+USD to BTC: <input type="number" step=".01" name="amount"> <input type="submit" value="Convert"></form></div>
+    <div><form method="POST" action="/convertUSDtoETH">
+USD to ETH: <input type="number" step=".01" name="amount"> <input type="submit" value="Convert"></form></div>
+	<div><form method="POST" action="/convertETHtoUSD">
+ETH to USD: <input type="number" step=".01" name="amount"> <input type="submit" value="Convert"></form></div>
+	<div><form method="POST" action="/convertETHtoBTC">
+ETH to BTC: <input type="number" step=".01" name="amount"> <input type="submit" value="Convert"></form></div>
+	<div><form method="POST" action="/convertBTCtoUSD">
+BTC to USD: <input type="number" step=".01" name="amount"> <input type="submit" value="Convert"></form></div>
+	<div><form method="POST" action="/convertBTCtoETH">
+BTC to ETH: <input type="number" step=".01" name="amount"> <input type="submit" value="Convert"></form></div>
   
     <h2><br /><u>Digital Wallet:</u></h2>
-      <span> &emsp; Wallet Address: <br /> </span>
+      <span> &emsp; Wallet Address: {{walletAddress}}<br /> </span>
       <span style="font-size: 12pt;"> &emsp; &emsp; <em>Remember to never give anyone your seed phrase!</em>  <br /> <br /> </span>
       <span> &emsp; <b>Cryptocurrencies:</b> <br /> </span>
-      <div>&emsp;&emsp; ETH Balance:&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
-        &emsp; &emsp; BTC Balance:</div>
+      <div>&emsp;&emsp; ETH Balance: {{digitalWalletETH}}&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        &emsp; &emsp; BTC Balance: {{digitalWalletBTC}}</div>
       <span><br /></span>
       <span> &emsp; <b>Non-Fungible Tokens:</b> <br /> </span>
-      <div>&emsp; &emsp; Bored Ape YC Balance: &emsp; &emsp; &emsp; &emsp; &emsp;
-        CryptoPunk Balance: &emsp; &emsp; &emsp; &emsp; &emsp;
-        Autoglyphs Balance:</div>
+      <div>&emsp; &emsp; Bored Ape YC Balance: {{digitalWalletNFT1}} &emsp; &emsp; &emsp; &emsp; &emsp;
+        CryptoPunk Balance: {{digitalWalletNFT2}} &emsp; &emsp; &emsp; &emsp; &emsp;
+        Autoglyphs Balance: {{digitalWalletNFT3}}</div>
       <span><br /></span>
-      <span> &emsp; <em><b>Sending Assets:</b></em> <br /> </span>
-      <div>&emsp; &emsp; From: <br />
-        &emsp; &emsp; &emsp; To: </div>
+      <span><em><b>Sending Assets:</b></em> <br /> </span>
+      <div>From (your address): {{walletAddress}} </div>	
+      <div><form method="POST" action="/sendBetweenWallets">
+To Recipient Address: <input type="text" name="hashAddress"><br>
+Type of Currency (You must enter one of the following: "eth", "btc", "nft1", "nft2", "nft3"): <input type="text" name="currencyType"><br>
+Amount: <input type="number" step=".01" name="amount"><br>
+<input type="submit" value="Send Assets"></form></div>
+
         <span><br /><br /><br /><br /></span>
+        <br>
+<p><a href="/">Go back to login page</a></p>
 
 </body>
 
