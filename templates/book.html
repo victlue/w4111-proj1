@@ -1,15 +1,16 @@
 <html>
   <style>
     body{ 
-      font-size: 18pt;
+      font-size: 15pt;
       font-family: arial;
-      line-height: 40px;
     }
   </style>
 
 
 <body>
-  <h1>Welcome,</h1>
+
+<p><a href="/">Go back to home page</a></p>
+  <h1>Welcome, {{userName}}.</h1>
   <span><br /></span>
   <!-- <p>NAME: <input type="text" name="name" placeholder="Enter name..." /> </p>
   <p>SSN: <input type="text" name="name" placeholder="Enter SSN...">/ </p> -->
@@ -19,13 +20,15 @@
   </form> -->
 
   <h2><u>Personal Wallet:</u></h2>
-    <div> &emsp; Balance:</div>
+    <div> &emsp; Balance: ${{walletBalance}}</div>
+    <div><form method="POST" action="/depositUser">
+Deposit to Bank: <input type="number" step=".01" name="amount"> <input type="submit" value="Deposit"></form></div>
     <div> &emsp; Deposit to Bank: </div>
     <div> &emsp; Withdraw from Bank: </div>
     <span><br /><br /></span>
 
   <h2><u>Bank:</u></h2>
-    <div> &emsp; Balance:</div>
+    <div> &emsp; Balance: ${{bankBalance}}</div>
     <div> &emsp; Deposit to Cryptoexchange:</div>
     <div> &emsp; Withdraw from Cryptoexchange:</div>
 
@@ -67,7 +70,7 @@
       <div>&emsp; &emsp; From: <br />
         &emsp; &emsp; &emsp; To: </div>
         <span><br /><br /><br /><br /></span>
-      
+
 </body>
 
 
