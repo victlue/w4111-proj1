@@ -13,6 +13,8 @@ import os
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, url_for
+import random
+import string
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
@@ -31,6 +33,7 @@ app = Flask(__name__, template_folder=tmpl_dir)
 #
 DATABASEURI = "postgresql://vl2420:6609@34.74.246.148/proj1part2"
 #DATABASEURI = "postgresql://vl2420:6609@34.73.37.51/proj1part2"
+
 
 #
 # This line creates a database engine that knows how to connect to the URI above.
@@ -109,36 +112,13 @@ def index():
   #
   # example of a database query
   #
+  
   cursor = g.conn.execute("SELECT name FROM test")
   names = []
   for result in cursor:
     names.append(result['name'])  # can also be accessed using result[0]
   cursor.close()
   
-  
-  
-  #My Test
-  cursor = g.conn.execute("SELECT ssn FROM users")
-  for result in cursor:
-    names.append(result['ssn'])  # can also be accessed using result[0]
-  cursor.close()
-
-  cursor = g.conn.execute("SELECT M.name FROM users M WHERE M.walletbal=30000")
-  for result in cursor:
-    names.append(result['name'])  # can also be accessed using result[0]
-  cursor.close()
-
-  cursor = g.conn.execute("SELECT AVG(walletbal) FROM users")
-  for result in cursor:
-    names.append(result[0])  # can also be accessed using result[0]
-  cursor.close()
-  
-  cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE bid=1")
-  for result in cursor:
-    names.append(result['balance'])  # can also be accessed using result[0]
-  cursor.close()
-  
-
   
   
 
@@ -199,61 +179,416 @@ def add():
 
 @app.route('/depositUser', methods=['POST'])
 def depositUser():
+    
     depositAmt = request.form['amount']
-    print(request.form['name'])
-    print(depositAmt)
+    g.conn.execute("DELETE FROM deposits_user WHERE ABS(ssn - (SELECT ssn FROM users WHERE name=\'{}\'))<= 10".format(userInput))
+    g.conn.execute("INSERT INTO deposits_user SELECT ssn, bid, %s FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput), depositAmt)
+    g.conn.execute("UPDATE users M set walletbal=M.walletbal-%s WHERE M.name=\'{}\'".format(userInput), depositAmt)
+    g.conn.execute("UPDATE bank M set balance=M.balance+%s WHERE M.name=\'{}\'".format(userInput), depositAmt)
     
     
-    print("This is name")
-    print(request.form['name'])
-    g.conn.execute("DELETE FROM deposits_user where bid=1")
-    g.conn.execute("INSERT INTO deposits_user VALUES (948232260, 1, %s)", depositAmt)
-    g.conn.execute("UPDATE users M set walletbal=M.walletbal-%s WHERE M.name='Lincoln'", depositAmt)
-    g.conn.execute("UPDATE bank M set balance=M.balance+%s WHERE M.name='Lincoln'", depositAmt)
-    outputs=[]
-    userInput = request.form['name']
-    #outputs.append(g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name=%s", userInput))
-    #outputs.append(g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=%s", userInput))
-    #cursor = g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name='{}'".format(userInput))
-    cursor = g.conn.execute("SELECT walletbal FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
-    for result in cursor:
-        outputs.append(result['walletbal'])  # can also be accessed using result[0]
-    cursor.close()
-
-    #cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name='{}'".format(userInput))
-    cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
-    for result in cursor:
-        outputs.append(result['balance'])  # can also be accessed using result[0]
-    cursor.close()
-
-    outputdict = dict(userName=userInput,walletBalance=outputs[0], bankBalance=outputs[1])
-    print(outputdict)
-    return redirect("0.0.0.0:8111/book", **outputdict)
+    return redirect(url_for('book'))
+    #return render_template("book.html",**dict(userName="0",walletBalance=0, bankBalance=1))
+    
+@app.route('/depositcExchange', methods=['POST'])
+def depositcExchange():
+    
+    depositAmt = request.form['amount']
+    print("The type!")
+    print(type(depositAmt))
+    g.conn.execute("UPDATE deposits_cexchange set deposit=%s WHERE bid=(SELECT bid FROM users NATURAL JOIN bank WHERE name=\'{}\')".format(userInput),depositAmt)
+    g.conn.execute("UPDATE CryptoExchange M set usdbal=M.usdbal+%s WHERE M.name=\'{}\'".format(userInput), depositAmt)
+    g.conn.execute("UPDATE bank M set balance=M.balance-%s WHERE M.name=\'{}\'".format(userInput), depositAmt)
+    
+    
+    return redirect(url_for('book'))
     #return render_template("book.html",**dict(userName="0",walletBalance=0, bankBalance=1))
 
-
-@app.route('/book', methods=['POST'])
-def book():
+@app.route('/withdrawUser', methods=['POST'])
+def withdrawUser():
     
-    outputs=[]
-    userInput = request.form['name']
-    #outputs.append(g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name=%s", userInput))
-    #outputs.append(g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=%s", userInput))
-    #cursor = g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name='{}'".format(userInput))
-    cursor = g.conn.execute("SELECT walletbal FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
-    for result in cursor:
-        outputs.append(result['walletbal'])  # can also be accessed using result[0]
-    cursor.close()
+    withdrawAmt = request.form['amount']
+    g.conn.execute("DELETE FROM withdraws_user WHERE ABS(ssn - (SELECT ssn FROM users WHERE name=\'{}\'))<= 10".format(userInput))
+    g.conn.execute("INSERT INTO withdraws_user SELECT ssn, bid, %s FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput), withdrawAmt)
+    g.conn.execute("UPDATE users M set walletbal=M.walletbal+%s WHERE M.name=\'{}\'".format(userInput), withdrawAmt)
+    g.conn.execute("UPDATE bank M set balance=M.balance-%s WHERE M.name=\'{}\'".format(userInput), withdrawAmt)
+    
+    
+    return redirect(url_for('book'))
 
-    #cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name='{}'".format(userInput))
-    cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
-    for result in cursor:
-        outputs.append(result['balance'])  # can also be accessed using result[0]
-    cursor.close()
+@app.route('/withdrawcExchange', methods=['POST'])
+def withdrawcExchange():
+    
+    withdrawAmt = request.form['amount']
+    g.conn.execute("UPDATE withdraws_cexchange set withdraw=%s WHERE bid=(SELECT bid FROM users NATURAL JOIN bank WHERE name=\'{}\')".format(userInput),withdrawAmt)
+    g.conn.execute("UPDATE CryptoExchange M set usdbal=M.usdbal-%s WHERE M.name=\'{}\'".format(userInput), withdrawAmt)
+    g.conn.execute("UPDATE bank M set balance=M.balance+%s WHERE M.name=\'{}\'".format(userInput), withdrawAmt)
+    
+    
+    return redirect(url_for('book'))
 
-    outputdict = dict(userName=userInput,walletBalance=outputs[0], bankBalance=outputs[1])
-    print(outputdict)
-    return render_template("book.html", **outputdict)
+@app.route('/depositETHWallet', methods=['POST'])
+def depositETHWallet():
+    
+    depositAmt = request.form['amount']
+    g.conn.execute("UPDATE deposits_dwallet set depositeth=%s, depositbtc=0 WHERE address=(SELECT address from users NATURAL JOIN owns WHERE name=\'{}\')".format(userInput),depositAmt)
+    g.conn.execute("UPDATE CryptoExchange M set ethbal=M.ethbal-%s WHERE M.name=\'{}\'".format(userInput), depositAmt)
+    g.conn.execute("UPDATE digital_wallet M set ethbal=M.ethbal+%s WHERE M.address=(SELECT address from users NATURAL JOIN owns WHERE name=\'{}\')".format(userInput), depositAmt)
+    
+    return redirect(url_for('book'))
+
+@app.route('/depositBTCWallet', methods=['POST'])
+def depositBTCWallet():
+    
+    depositAmt = request.form['amount']
+    g.conn.execute("UPDATE deposits_dwallet set depositeth=0, depositbtc=%s WHERE address=(SELECT address from users NATURAL JOIN owns WHERE name=\'{}\')".format(userInput),depositAmt)
+    g.conn.execute("UPDATE CryptoExchange M set btcbal=M.btcbal-%s WHERE M.name=\'{}\'".format(userInput), depositAmt)
+    g.conn.execute("UPDATE digital_wallet M set btcbal=M.btcbal+%s WHERE M.address=(SELECT address from users NATURAL JOIN owns WHERE name=\'{}\')".format(userInput), depositAmt)
+    
+    return redirect(url_for('book'))
+
+@app.route('/withdrawETHWallet', methods=['POST'])
+def withdrawETHWallet():
+    
+    withdrawAmt = request.form['amount']
+    g.conn.execute("UPDATE withdraws_dwallet set withdraweth=%s, withdrawbtc=0 WHERE address=(SELECT address from users NATURAL JOIN owns WHERE name=\'{}\')".format(userInput),withdrawAmt)
+    g.conn.execute("UPDATE CryptoExchange M set ethbal=M.ethbal+%s WHERE M.name=\'{}\'".format(userInput), withdrawAmt)
+    g.conn.execute("UPDATE digital_wallet M set ethbal=M.ethbal-%s WHERE M.address=(SELECT address from users NATURAL JOIN owns WHERE name=\'{}\')".format(userInput), withdrawAmt)
+    
+    return redirect(url_for('book'))
+
+@app.route('/withdrawBTCWallet', methods=['POST'])
+def withdrawBTCWallet():
+    
+    withdrawAmt = request.form['amount']
+    g.conn.execute("UPDATE withdraws_dwallet set withdraweth=0, withdrawbtc=%s WHERE address=(SELECT address from users NATURAL JOIN owns WHERE name=\'{}\')".format(userInput),withdrawAmt)
+    g.conn.execute("UPDATE CryptoExchange M set btcbal=M.btcbal+%s WHERE M.name=\'{}\'".format(userInput), withdrawAmt)
+    g.conn.execute("UPDATE digital_wallet M set btcbal=M.btcbal-%s WHERE M.address=(SELECT address from users NATURAL JOIN owns WHERE name=\'{}\')".format(userInput), withdrawAmt)
+    
+    return redirect(url_for('book'))
+
+
+@app.route('/convertUSDtoBTC', methods=['POST'])
+def convertUSDtoBTC():
+    
+    convertAmt = request.form['amount']
+    transNumbers=[]
+    cursor = g.conn.execute("SELECT trans_number FROM convert")
+    for result in cursor:
+        transNumbers.append(result['trans_number'])
+    cursor.close()
+    
+    newTransNumber=1
+    while(newTransNumber in transNumbers):
+        newTransNumber=newTransNumber+1
+    
+    rates=[]
+    cursor = g.conn.execute("SELECT btc_usd_rate, eth_usd_rate FROM cryptocurrencies WHERE cname='bitcoin'")
+    for result in cursor:
+        rates.append(result['btc_usd_rate'])
+        rates.append(result['eth_usd_rate'])
+    cursor.close()
+    BTCgained=float(convertAmt)/rates[0]
+    
+    g.conn.execute("INSERT INTO convert VALUES('bitcoin', {}, (SELECT userid FROM cryptoexchange WHERE name=\'{}\'),0,0,{})".format(newTransNumber,userInput,convertAmt))
+    g.conn.execute("UPDATE CryptoExchange M set usdbal=M.usdbal-%s WHERE M.name=\'{}\'".format(userInput), convertAmt)
+    g.conn.execute("UPDATE CryptoExchange M set btcbal=M.btcbal+%s WHERE M.name=\'{}\'".format(userInput), BTCgained)
+    
+    return redirect(url_for('book'))
+
+@app.route('/convertBTCtoUSD', methods=['POST'])
+def convertBTCtoUSD():
+    
+    convertAmt = request.form['amount']
+    transNumbers=[]
+    cursor = g.conn.execute("SELECT trans_number FROM convert")
+    for result in cursor:
+        transNumbers.append(result['trans_number'])
+    cursor.close()
+    
+    newTransNumber=1
+    while(newTransNumber in transNumbers):
+        newTransNumber=newTransNumber+1
+    
+    rates=[]
+    cursor = g.conn.execute("SELECT btc_usd_rate, eth_usd_rate FROM cryptocurrencies WHERE cname='bitcoin'")
+    for result in cursor:
+        rates.append(result['btc_usd_rate'])
+        rates.append(result['eth_usd_rate'])
+    cursor.close()
+    USDgained=float(convertAmt)*rates[0]
+    
+    g.conn.execute("INSERT INTO convert VALUES('usd', {}, (SELECT userid FROM cryptoexchange WHERE name=\'{}\'),{},0,0)".format(newTransNumber,userInput,convertAmt))
+    g.conn.execute("UPDATE CryptoExchange M set usdbal=M.usdbal+%s WHERE M.name=\'{}\'".format(userInput), USDgained)
+    g.conn.execute("UPDATE CryptoExchange M set btcbal=M.btcbal-%s WHERE M.name=\'{}\'".format(userInput), convertAmt)
+    
+    return redirect(url_for('book'))
+
+@app.route('/convertUSDtoETH', methods=['POST'])
+def convertUSDtoETH():
+    
+    convertAmt = request.form['amount']
+    transNumbers=[]
+    cursor = g.conn.execute("SELECT trans_number FROM convert")
+    for result in cursor:
+        transNumbers.append(result['trans_number'])
+    cursor.close()
+    
+    newTransNumber=1
+    while(newTransNumber in transNumbers):
+        newTransNumber=newTransNumber+1
+    
+    rates=[]
+    cursor = g.conn.execute("SELECT btc_usd_rate, eth_usd_rate FROM cryptocurrencies WHERE cname='bitcoin'")
+    for result in cursor:
+        rates.append(result['btc_usd_rate'])
+        rates.append(result['eth_usd_rate'])
+    cursor.close()
+    ETHgained=float(convertAmt)/rates[1]
+    
+    g.conn.execute("INSERT INTO convert VALUES('etherium', {}, (SELECT userid FROM cryptoexchange WHERE name=\'{}\'),0,0,{})".format(newTransNumber,userInput,convertAmt))
+    g.conn.execute("UPDATE CryptoExchange M set usdbal=M.usdbal-%s WHERE M.name=\'{}\'".format(userInput), convertAmt)
+    g.conn.execute("UPDATE CryptoExchange M set ethbal=M.ethbal+%s WHERE M.name=\'{}\'".format(userInput), ETHgained)
+    
+    return redirect(url_for('book'))
+
+@app.route('/convertETHtoUSD', methods=['POST'])
+def convertETHtoUSD():
+    
+    convertAmt = request.form['amount']
+    transNumbers=[]
+    cursor = g.conn.execute("SELECT trans_number FROM convert")
+    for result in cursor:
+        transNumbers.append(result['trans_number'])
+    cursor.close()
+    
+    newTransNumber=1
+    while(newTransNumber in transNumbers):
+        newTransNumber=newTransNumber+1
+    
+    rates=[]
+    cursor = g.conn.execute("SELECT btc_usd_rate, eth_usd_rate FROM cryptocurrencies WHERE cname='bitcoin'")
+    for result in cursor:
+        rates.append(result['btc_usd_rate'])
+        rates.append(result['eth_usd_rate'])
+    cursor.close()
+    USDgained=float(convertAmt)*rates[1]
+    
+    g.conn.execute("INSERT INTO convert VALUES('usd', {}, (SELECT userid FROM cryptoexchange WHERE name=\'{}\'),0,{},0)".format(newTransNumber,userInput,convertAmt))
+    g.conn.execute("UPDATE CryptoExchange M set usdbal=M.usdbal+%s WHERE M.name=\'{}\'".format(userInput), USDgained)
+    g.conn.execute("UPDATE CryptoExchange M set ethbal=M.ethbal-%s WHERE M.name=\'{}\'".format(userInput), convertAmt)
+    
+    return redirect(url_for('book'))
+
+@app.route('/convertETHtoBTC', methods=['POST'])
+def convertETHtoBTC():
+    
+    convertAmt = request.form['amount']
+    transNumbers=[]
+    cursor = g.conn.execute("SELECT trans_number FROM convert")
+    for result in cursor:
+        transNumbers.append(result['trans_number'])
+    cursor.close()
+    
+    newTransNumber=1
+    while(newTransNumber in transNumbers):
+        newTransNumber=newTransNumber+1
+    
+    rates=[]
+    cursor = g.conn.execute("SELECT btc_usd_rate, eth_usd_rate, btc_eth_rate FROM cryptocurrencies WHERE cname='bitcoin'")
+    for result in cursor:
+        rates.append(result['btc_usd_rate'])
+        rates.append(result['eth_usd_rate'])
+        rates.append(result['btc_eth_rate'])
+    cursor.close()
+    BTCgained=float(convertAmt)/rates[2]
+    
+    g.conn.execute("INSERT INTO convert VALUES('bitcoin', {}, (SELECT userid FROM cryptoexchange WHERE name=\'{}\'),0,{},0)".format(newTransNumber,userInput,convertAmt))
+    g.conn.execute("UPDATE CryptoExchange M set btcbal=M.btcbal+%s WHERE M.name=\'{}\'".format(userInput), BTCgained)
+    g.conn.execute("UPDATE CryptoExchange M set ethbal=M.ethbal-%s WHERE M.name=\'{}\'".format(userInput), convertAmt)
+    
+    return redirect(url_for('book'))
+
+@app.route('/convertBTCtoETH', methods=['POST'])
+def convertBTCtoETH():
+    
+    convertAmt = request.form['amount']
+    transNumbers=[]
+    cursor = g.conn.execute("SELECT trans_number FROM convert")
+    for result in cursor:
+        transNumbers.append(result['trans_number'])
+    cursor.close()
+    
+    newTransNumber=1
+    while(newTransNumber in transNumbers):
+        newTransNumber=newTransNumber+1
+    
+    rates=[]
+    cursor = g.conn.execute("SELECT btc_usd_rate, eth_usd_rate, btc_eth_rate FROM cryptocurrencies WHERE cname='bitcoin'")
+    for result in cursor:
+        rates.append(result['btc_usd_rate'])
+        rates.append(result['eth_usd_rate'])
+        rates.append(result['btc_eth_rate'])
+    cursor.close()
+    ETHgained=float(convertAmt)*rates[2]
+    
+    g.conn.execute("INSERT INTO convert VALUES('etherium', {}, (SELECT userid FROM cryptoexchange WHERE name=\'{}\'),{},0,0)".format(newTransNumber,userInput,convertAmt))
+    g.conn.execute("UPDATE CryptoExchange M set btcbal=M.btcbal-%s WHERE M.name=\'{}\'".format(userInput), convertAmt)
+    g.conn.execute("UPDATE CryptoExchange M set ethbal=M.ethbal+%s WHERE M.name=\'{}\'".format(userInput), ETHgained)
+    
+    return redirect(url_for('book'))
+
+@app.route('/sendBetweenWallets', methods=['POST'])
+def sendBetweenWallets():
+    
+    currencyType = request.form['currencyType']
+    transferAmount = request.form['amount']
+    recipientAddress =request.form['hashAddress']
+    
+    transferAmount=float(transferAmount)
+    
+    ethSentVal=0
+    btcSentVal=0
+    nft1SentVal=0
+    nft2SentVal=0
+    nft3SentVal=0
+    address1Val=""
+    contractHash=''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(12))
+    
+    cursor = g.conn.execute("SELECT address FROM users NATURAL JOIN owns WHERE name=\'{}\'".format(userInput))
+    for result in cursor:
+        address1Val=result['address']
+    cursor.close()
+    
+    if (currencyType=='eth'):
+        ethSentVal+=transferAmount
+    elif(currencyType=='btc'):
+        btcSentVal+=transferAmount
+    elif(currencyType=='nft1'):
+        nft1SentVal+=transferAmount
+    elif(currencyType=='nft2'):
+        nft2SentVal+= transferAmount
+    elif(currencyType=='nft3'):
+        nft3SentVal+=transferAmount
+    else:
+        ethSentVal=0
+    
+    g.conn.execute("INSERT INTO sends_to VALUES(\'{}\',\'{}\',{},{},{},{},{},\'{}\')".format(address1Val,recipientAddress,ethSentVal,
+                                                                                 btcSentVal,nft1SentVal,nft2SentVal,
+                                                                                 nft3SentVal,contractHash))
+    g.conn.execute("UPDATE digital_wallet M set btcbal=M.btcbal+{},ethbal=M.ethbal+{},nft1bal=M.nft1bal+{},nft2bal=M.nft2bal+{},nft3bal=M.nft3bal+{} WHERE M.address=\'{}\'".format(btcSentVal, ethSentVal,nft1SentVal, nft2SentVal,nft3SentVal,recipientAddress))
+    g.conn.execute("UPDATE digital_wallet M set btcbal=M.btcbal-{},ethbal=M.ethbal-{},nft1bal=M.nft1bal-{},nft2bal=M.nft2bal-{},nft3bal=M.nft3bal-{} WHERE M.address=\'{}\'".format(btcSentVal, ethSentVal,
+                                                                                                                                                                                nft1SentVal, nft2SentVal,
+                                                                                                                                                                                nft3SentVal, address1Val))
+    return redirect(url_for('book'))
+
+
+@app.route('/book', methods=['POST', 'GET'])
+def book():
+    if request.method=='POST':
+        outputs=[]
+        global userInput
+        userInput = request.form['name']
+        #outputs.append(g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name=%s", userInput))
+        #outputs.append(g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=%s", userInput))
+        #cursor = g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name='{}'".format(userInput))
+        cursor = g.conn.execute("SELECT walletbal FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['walletbal'])  # can also be accessed using result[0]
+        cursor.close()
+    
+        #cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name='{}'".format(userInput))
+        cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['balance'])
+        cursor.close()
+        
+        cursor = g.conn.execute("SELECT usdbal, ethbal, btcbal FROM CryptoExchange WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['usdbal'])
+            outputs.append(result['ethbal'])
+            outputs.append(result['btcbal'])
+        cursor.close()
+
+        cursor = g.conn.execute("SELECT btc_usd_rate, eth_usd_rate FROM cryptocurrencies WHERE cname='bitcoin'")
+        for result in cursor:
+            outputs.append(result['btc_usd_rate'])
+            outputs.append(result['eth_usd_rate'])
+        cursor.close()
+        
+        cursor = g.conn.execute("SELECT address FROM users NATURAL JOIN owns WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['address'])
+        cursor.close()
+
+        cursor = g.conn.execute("SELECT ethbal,btcbal,nft1bal,nft2bal,nft3bal FROM users NATURAL JOIN owns NATURAL JOIN digital_wallet WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['ethbal'])
+            outputs.append(result['btcbal'])
+            outputs.append(result['nft1bal'])
+            outputs.append(result['nft2bal'])
+            outputs.append(result['nft3bal'])
+        cursor.close()
+    
+        outputdict = dict(userName=userInput,walletBalance=outputs[0], bankBalance=outputs[1],
+                          cExchangeUSD=outputs[2],cExchangeETH=outputs[3],cExchangeBTC=outputs[4],
+                          BTCPrice=outputs[5],ETHPrice=outputs[6],walletAddress=outputs[7],
+                          digitalWalletETH=outputs[8],digitalWalletBTC=outputs[9],
+                          digitalWalletNFT1=outputs[10],digitalWalletNFT2=outputs[11],
+                          digitalWalletNFT3=outputs[12])
+        print(outputdict)
+        return render_template("book.html", **outputdict)
+    else:
+        #outputs.append(g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name=%s", userInput))
+        #outputs.append(g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=%s", userInput))
+        #cursor = g.conn.execute("SELECT M.walletbal FROM users M WHERE M.name='{}'".format(userInput))
+        outputs=[]
+        cursor = g.conn.execute("SELECT walletbal FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['walletbal'])  # can also be accessed using result[0]
+        cursor.close()
+    
+        #cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name='{}'".format(userInput))
+        cursor = g.conn.execute("SELECT balance FROM users NATURAL JOIN bank WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['balance'])  # can also be accessed using result[0]
+        cursor.close()
+        
+        cursor = g.conn.execute("SELECT usdbal, ethbal, btcbal FROM CryptoExchange WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['usdbal'])
+            outputs.append(result['ethbal'])
+            outputs.append(result['btcbal'])
+        cursor.close()
+    
+        cursor = g.conn.execute("SELECT btc_usd_rate, eth_usd_rate FROM cryptocurrencies WHERE cname='bitcoin'")
+        for result in cursor:
+            outputs.append(result['btc_usd_rate'])
+            outputs.append(result['eth_usd_rate'])
+        cursor.close()
+    
+        cursor = g.conn.execute("SELECT address FROM users NATURAL JOIN owns WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['address'])
+        cursor.close()
+    
+        cursor = g.conn.execute("SELECT ethbal,btcbal,nft1bal,nft2bal,nft3bal FROM users NATURAL JOIN owns NATURAL JOIN digital_wallet WHERE name=\'{}\'".format(userInput))
+        for result in cursor:
+            outputs.append(result['ethbal'])
+            outputs.append(result['btcbal'])
+            outputs.append(result['nft1bal'])
+            outputs.append(result['nft2bal'])
+            outputs.append(result['nft3bal'])
+        cursor.close()
+    
+        outputdict = dict(userName=userInput,walletBalance=outputs[0], bankBalance=outputs[1],
+                          cExchangeUSD=outputs[2],cExchangeETH=outputs[3],cExchangeBTC=outputs[4],
+                          BTCPrice=outputs[5],ETHPrice=outputs[6],walletAddress=outputs[7],
+                          digitalWalletETH=outputs[8],digitalWalletBTC=outputs[9],
+                          digitalWalletNFT1=outputs[10],digitalWalletNFT2=outputs[11],
+                          digitalWalletNFT3=outputs[12])
+        print(outputdict)
+        return render_template("book.html", **outputdict)
 
 
 @app.route('/bookInput', methods=['POST'])
